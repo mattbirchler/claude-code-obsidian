@@ -1,0 +1,22 @@
+{
+  "name": "claude-code-sync",
+  "version": "0.1.0",
+  "description": "Mirror Claude Code sessions into your Obsidian vault as Markdown.",
+  "main": "main.js",
+  "scripts": {
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "dev": "node esbuild.config.mjs",
+    "test": "TZ=UTC vitest run"
+  },
+  "keywords": ["obsidian", "claude-code"],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "builtin-modules": "^3.3.0",
+    "esbuild": "^0.21.0",
+    "obsidian": "latest",
+    "tslib": "^2.6.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}

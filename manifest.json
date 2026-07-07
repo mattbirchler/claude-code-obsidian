@@ -1,0 +1,10 @@
+{
+  "id": "claude-code-sync",
+  "name": "Claude Code Sync",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Mirror Claude Code sessions into your vault as Markdown notes.",
+  "author": "Matt Birchler",
+  "authorUrl": "https://birchtree.me",
+  "isDesktopOnly": true
+}
