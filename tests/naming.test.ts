@@ -26,6 +26,10 @@ describe("sanitizeName", () => {
     expect(sanitizeName("x".repeat(120))).toHaveLength(80);
   });
 
+  it("does not leave a trailing dot when truncation cuts at a dot", () => {
+    expect(sanitizeName("A".repeat(79) + ".B")).toBe("A".repeat(79));
+  });
+
   it("rejects Windows reserved names and empty results", () => {
     expect(sanitizeName("CON")).toBe("");
     expect(sanitizeName("com3")).toBe("");
