@@ -84,6 +84,37 @@ describe("parseSession", () => {
     expect(s.turns[0].text).toBe("hello");
   });
 
+  it("skips lines with isMeta: true", () => {
+    const jsonl = [
+      userLine("skill injection payload", { isMeta: true }),
+      userLine("real message"),
+      assistantLine([{ type: "text", text: "reply" }]),
+    ].join("\n");
+    const s = parseSession(jsonl, "s1", "p");
+    expect(s.turns).toHaveLength(2);
+    expect(s.turns[0]).toMatchObject({ role: "user", text: "real message" });
+    expect(s.turns[1]).toMatchObject({ role: "assistant", text: "reply" });
+  });
+
+  it("strips command markup and drops command-only turns", () => {
+    const commandOnly = userLine(
+      "<command-name>/sync</command-name><command-message>sync</command-message><command-args></command-args>"
+    );
+    const s = parseSession(commandOnly, "s1", "p");
+    expect(s.turns).toHaveLength(0);
+
+    const jsonl = [commandOnly, assistantLine([{ type: "text", text: "reply" }])].join("\n");
+    const withReply = parseSession(jsonl, "s1", "p");
+    expect(hasConversation(withReply)).toBe(false);
+  });
+
+  it("strips local-command-stdout markup", () => {
+    const jsonl = userLine("<local-command-stdout>some output</local-command-stdout>real question");
+    const s = parseSession(jsonl, "s1", "p");
+    expect(s.turns).toHaveLength(1);
+    expect(s.turns[0].text).toBe("real question");
+  });
+
   it("captures thinking and tool_use blocks, ignores tool_result", () => {
     const jsonl = [
       assistantLine([

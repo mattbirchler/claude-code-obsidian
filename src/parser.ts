@@ -21,7 +21,8 @@ export interface Session {
   turns: Turn[];
 }
 
-const SYSTEM_NOISE = /<system-reminder>[\s\S]*?<\/system-reminder>/g;
+const SYSTEM_NOISE =
+  /<(system-reminder|command-name|command-message|command-args|local-command-stdout|local-command-stderr)>[\s\S]*?<\/\1>/g;
 
 export function parseSession(jsonl: string, sessionId: string, fallbackProject: string): Session {
   const session: Session = {
@@ -56,6 +57,7 @@ export function parseSession(jsonl: string, sessionId: string, fallbackProject: 
     }
     if (rec.type !== "user" && rec.type !== "assistant") continue; // unknown types fail soft
     if (rec.isSidechain === true) continue; // subagent transcripts are not the user's conversation
+    if (rec.isMeta === true) continue; // harness-injected payloads (skill injections, caveats), not user conversation
 
     if (typeof rec.cwd === "string" && rec.cwd && !session.cwd) {
       session.cwd = rec.cwd;
