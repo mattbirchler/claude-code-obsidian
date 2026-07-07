@@ -126,6 +126,37 @@ describe("SyncEngine.run", () => {
     ).toBe(true);
   });
 
+  it("suffixes the filename when an untracked vault note occupies the target path", async () => {
+    const vault = new FakeVault();
+    const notePath = "Claude Code/myproj/2026-07-06 Fix the bug.md";
+    vault.files.set(notePath, "sentinel: pre-existing user note");
+    const engine = new SyncEngine(vault, () => sessionJsonl("Fix the bug"));
+    const state: SyncState = {};
+    const result = await engine.run([file()], SETTINGS, state);
+
+    expect(result).toMatchObject({ synced: 1, skipped: 0, errors: [] });
+    expect(vault.files.get(notePath)).toBe("sentinel: pre-existing user note");
+    const suffixedPath = "Claude Code/myproj/2026-07-06 Fix the bug (abc-123).md";
+    expect(vault.files.has(suffixedPath)).toBe(true);
+    expect(vault.files.get(suffixedPath)).toContain("# Fix the bug");
+  });
+
+  it("re-syncing the same session over its own existing note keeps the same path with no suffix", async () => {
+    const vault = new FakeVault();
+    const notePath = "Claude Code/myproj/2026-07-06 Fix the bug.md";
+    const engine = new SyncEngine(vault, () => sessionJsonl("Fix the bug"));
+    const state: SyncState = {
+      "/src/proj/abc-123.jsonl": { mtimeMs: 1000, notePath },
+    };
+    vault.files.set(notePath, "old content");
+
+    const result = await engine.run([file({ mtimeMs: 2000 })], SETTINGS, state);
+    expect(result).toMatchObject({ synced: 1, skipped: 0, errors: [] });
+    expect(vault.files.has(notePath)).toBe(true);
+    expect(vault.files.get(notePath)).toContain("# Fix the bug");
+    expect(vault.files.has("Claude Code/myproj/2026-07-06 Fix the bug (abc-123).md")).toBe(false);
+  });
+
   it("continues past per-file errors and reports them", async () => {
     const vault = new FakeVault();
     const engine = new SyncEngine(vault, (path) => {

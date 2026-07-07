@@ -57,7 +57,7 @@ export class SyncEngine {
         const projectName = sanitizeName(session.project ?? "") || file.projectFolder;
         const folder = `${settings.targetFolder}/${projectName}`;
         let notePath = `${folder}/${noteBaseName(session)}.md`;
-        notePath = resolveCollision(notePath, file.path, session.id, state);
+        notePath = this.resolveCollision(notePath, file.path, session.id, state, prev?.notePath);
 
         await this.ensureFolder(settings.targetFolder);
         await this.ensureFolder(folder);
@@ -80,17 +80,20 @@ export class SyncEngine {
   private async ensureFolder(path: string): Promise<void> {
     if (!this.vault.exists(path)) await this.vault.createFolder(path);
   }
-}
 
-function resolveCollision(
-  notePath: string,
-  sourcePath: string,
-  sessionId: string,
-  state: SyncState
-): string {
-  const taken = Object.entries(state).some(
-    ([src, st]) => src !== sourcePath && st.notePath === notePath
-  );
-  if (!taken) return notePath;
-  return notePath.replace(/\.md$/, ` (${sessionId.slice(0, 8)}).md`);
+  private resolveCollision(
+    notePath: string,
+    sourcePath: string,
+    sessionId: string,
+    state: SyncState,
+    prevNotePath: string | undefined
+  ): string {
+    const ownedByOther = Object.entries(state).some(
+      ([src, st]) => src !== sourcePath && st.notePath === notePath
+    );
+    const untrackedExisting =
+      !ownedByOther && notePath !== prevNotePath && this.vault.exists(notePath);
+    if (!ownedByOther && !untrackedExisting) return notePath;
+    return notePath.replace(/\.md$/, ` (${sessionId.slice(0, 8)}).md`);
+  }
 }
