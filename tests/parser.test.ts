@@ -99,6 +99,17 @@ describe("parseSession", () => {
     expect(s.turns[0].tools).toEqual([{ name: "Edit", input: { file_path: "src/tts.ts" } }]);
   });
 
+  it("drops empty thinking blocks", () => {
+    const jsonl = assistantLine([
+      { type: "thinking", thinking: "" },
+      { type: "text", text: "answer" },
+    ]);
+    const s = parseSession(jsonl, "s1", "p");
+    expect(s.turns).toHaveLength(1);
+    expect(s.turns[0].thinking).toEqual([]);
+    expect(s.turns[0].text).toBe("answer");
+  });
+
   it("tracks startedAt and updatedAt from first and last turns", () => {
     const jsonl = [
       userLine("first"),

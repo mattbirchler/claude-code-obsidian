@@ -110,7 +110,7 @@ function toTurn(rec: Record<string, unknown>): Turn | null {
       const b = block as Record<string, unknown>;
       if (b.type === "text" && typeof b.text === "string") {
         texts.push(b.text);
-      } else if (b.type === "thinking" && typeof b.thinking === "string") {
+      } else if (b.type === "thinking" && typeof b.thinking === "string" && b.thinking.trim() !== "") {
         turn.thinking.push(b.thinking);
       } else if (b.type === "tool_use") {
         turn.tools.push({ name: typeof b.name === "string" ? b.name : "tool", input: b.input });
