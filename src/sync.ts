@@ -29,6 +29,14 @@ export interface SyncResult {
   errors: string[];
 }
 
+export function renderSettingsKey(settings: SyncSettings): string {
+  return `tools:${settings.includeTools}|thinking:${settings.includeThinking}`;
+}
+
+export function invalidateAll(state: SyncState): void {
+  for (const key of Object.keys(state)) state[key].mtimeMs = -1;
+}
+
 export class SyncEngine {
   constructor(
     private vault: VaultAdapter,

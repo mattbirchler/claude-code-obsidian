@@ -7,16 +7,18 @@ import {
   DEFAULT_SETTINGS,
 } from "./settings";
 import { findSessionFiles } from "./discovery";
-import { SyncEngine, SyncState, VaultAdapter } from "./sync";
+import { SyncEngine, SyncState, VaultAdapter, invalidateAll, renderSettingsKey } from "./sync";
 
 interface PersistedData {
   settings: ClaudeCodeSyncSettings;
   state: SyncState;
+  renderKey?: string;
 }
 
 export default class ClaudeCodeSyncPlugin extends Plugin {
   settings: ClaudeCodeSyncSettings = { ...DEFAULT_SETTINGS };
   state: SyncState = {};
+  renderKey = "";
   private syncing = false;
   private intervalId: number | null = null;
 
@@ -50,8 +52,11 @@ export default class ClaudeCodeSyncPlugin extends Plugin {
     this.syncing = true;
     try {
       const files = findSessionFiles(this.settings.sourcePath, os.homedir());
+      const currentRenderKey = renderSettingsKey(this.settings);
+      if (this.renderKey !== currentRenderKey) invalidateAll(this.state);
       const engine = new SyncEngine(this.vaultAdapter(), (p) => fs.readFileSync(p, "utf8"));
       const result = await engine.run(files, this.settings, this.state);
+      this.renderKey = currentRenderKey;
       await this.savePersisted();
       if (result.errors.length > 0) {
         console.error("Claude Code Sync errors:", result.errors);
@@ -90,10 +95,11 @@ export default class ClaudeCodeSyncPlugin extends Plugin {
     const data = (await this.loadData()) as Partial<PersistedData> | null;
     this.settings = { ...DEFAULT_SETTINGS, ...(data?.settings ?? {}) };
     this.state = data?.state ?? {};
+    this.renderKey = data?.renderKey ?? "";
   }
 
   async savePersisted() {
-    const data: PersistedData = { settings: this.settings, state: this.state };
+    const data: PersistedData = { settings: this.settings, state: this.state, renderKey: this.renderKey };
     await this.saveData(data);
   }
 }

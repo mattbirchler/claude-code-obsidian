@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { SyncEngine, SyncState, VaultAdapter } from "../src/sync";
+import { SyncEngine, SyncState, VaultAdapter, invalidateAll, renderSettingsKey } from "../src/sync";
 import type { SessionFile } from "../src/discovery";
 
 class FakeVault implements VaultAdapter {
@@ -172,5 +172,71 @@ describe("SyncEngine.run", () => {
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]).toContain("bad.jsonl");
     expect(result.synced).toBe(1);
+  });
+
+  it("rewrites a note whose mtime hasn't advanced after invalidateAll, reflecting new render settings", async () => {
+    const vault = new FakeVault();
+    const sessionJsonlWithThinking = [
+      JSON.stringify({ type: "ai-title", aiTitle: "Fix the bug" }),
+      JSON.stringify({
+        type: "user",
+        timestamp: "2026-07-06T18:04:11Z",
+        cwd: "/Users/u/code/myproj",
+        message: { role: "user", content: "hello" },
+      }),
+      JSON.stringify({
+        type: "assistant",
+        timestamp: "2026-07-06T18:05:00Z",
+        cwd: "/Users/u/code/myproj",
+        message: {
+          role: "assistant",
+          content: [
+            { type: "thinking", thinking: "Let me consider the fix..." },
+            { type: "text", text: "hi there" },
+          ],
+        },
+      }),
+    ].join("\n");
+    const engine = new SyncEngine(vault, () => sessionJsonlWithThinking);
+    const notePath = "Claude Code/myproj/2026-07-06 Fix the bug.md";
+    const state: SyncState = {};
+
+    // First run with thinking included establishes the baseline note.
+    await engine.run([file({ mtimeMs: 1000 })], SETTINGS, state);
+    expect(vault.files.get(notePath)).toContain("Thinking");
+
+    // Render settings change (thinking now excluded); invalidate state.
+    invalidateAll(state);
+    expect(state["/src/proj/abc-123.jsonl"].mtimeMs).toBe(-1);
+
+    const newSettings = { ...SETTINGS, includeThinking: false };
+    const result = await engine.run([file({ mtimeMs: 1000 })], newSettings, state);
+    expect(result).toMatchObject({ synced: 1, skipped: 0, errors: [] });
+    expect(vault.files.get(notePath)).not.toContain("Thinking");
+  });
+});
+
+describe("renderSettingsKey", () => {
+  it("differs when includeTools or includeThinking differ", () => {
+    const base = { targetFolder: "Claude Code", includeTools: true, includeThinking: true };
+    expect(renderSettingsKey(base)).toBe(renderSettingsKey({ ...base }));
+    expect(renderSettingsKey(base)).not.toBe(
+      renderSettingsKey({ ...base, includeThinking: false })
+    );
+    expect(renderSettingsKey(base)).not.toBe(renderSettingsKey({ ...base, includeTools: false }));
+  });
+});
+
+describe("invalidateAll", () => {
+  it("sets every entry's mtimeMs to -1 and preserves notePath", () => {
+    const state: SyncState = {
+      "/a.jsonl": { mtimeMs: 1000, notePath: "A.md" },
+      "/b.jsonl": { mtimeMs: 2000, notePath: "B.md" },
+    };
+    invalidateAll(state);
+    expect(state).toEqual({
+      "/a.jsonl": { mtimeMs: -1, notePath: "A.md" },
+      "/b.jsonl": { mtimeMs: -1, notePath: "B.md" },
+    });
   });
 });
