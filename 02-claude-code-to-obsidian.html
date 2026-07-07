@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Build 2 — Claude Code sessions into Obsidian</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ground:#0F0D1A;
+    --panel:#191531;
+    --panel-2:#211B3E;
+    --ink:#D2CDE6;
+    --ink-dim:#948CB4;
+    --ink-faint:#6B6390;
+    --line:#2E2650;
+    --accent:#A574F5;       /* Obsidian violet */
+    --accent-soft:#A574F522;
+    --cyan:#6FE0D0;
+    --warn:#FF8FA6;
+    --warn-soft:#FF8FA618;
+    --radius:14px;
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+    --sans:"IBM Plex Sans",system-ui,sans-serif;
+    --display:"Space Grotesk",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    background-color:var(--ground);
+    background-image:
+      linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:16.5px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:820px;margin:0 auto;padding:0 24px 120px}
+
+  header{padding:80px 0 34px}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.28em;
+    text-transform:uppercase;color:var(--accent);margin:0 0 22px}
+  h1{font-family:var(--display);font-weight:700;font-size:clamp(34px,6vw,54px);
+    line-height:1.03;letter-spacing:-.02em;margin:0 0 20px;color:#F3F0FB}
+  h1 .thin{color:var(--ink-dim);font-weight:400}
+  .lede{font-size:18.5px;color:var(--ink);max-width:62ch;margin:0}
+  .lede b{color:#EFEAFA;font-weight:600}
+
+  .path{display:flex;flex-wrap:wrap;align-items:center;gap:9px;
+    margin:40px 0 8px;padding:20px;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius)}
+  .chip{font-family:var(--mono);font-size:12.5px;font-weight:500;
+    padding:7px 12px;border-radius:8px;white-space:nowrap;
+    background:var(--panel-2);border:1px solid var(--line);color:var(--ink)}
+  .chip.src{border-color:#403664;color:var(--cyan)}
+  .chip.dst{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  .arr{color:var(--ink-faint);font-family:var(--mono);font-size:13px}
+
+  section{margin-top:52px}
+  .stage-head{display:flex;align-items:baseline;gap:16px;margin:0 0 6px}
+  .num{font-family:var(--display);font-weight:700;font-size:15px;
+    color:var(--accent);border:1px solid var(--accent);
+    width:34px;height:34px;flex:0 0 34px;border-radius:8px;
+    display:grid;place-items:center;background:var(--accent-soft)}
+  h2{font-family:var(--display);font-weight:600;font-size:25px;
+    letter-spacing:-.01em;margin:0;color:#F0ECFA;line-height:1.2}
+  .stage-sub{color:var(--ink-dim);font-family:var(--mono);font-size:12.5px;
+    margin:3px 0 0 50px;letter-spacing:.02em}
+  .body{margin-left:50px}
+  @media(max-width:600px){.body,.stage-sub{margin-left:0}}
+  p{margin:16px 0}
+  a{color:var(--cyan);text-decoration:none;border-bottom:1px solid #2E5B54}
+  a:hover{border-bottom-color:var(--cyan)}
+  strong{color:#EFEAFA;font-weight:600}
+  code{font-family:var(--mono);font-size:.86em;background:#0D0A18;
+    border:1px solid var(--line);padding:1px 6px;border-radius:5px;color:#DDD5F0}
+  ul{padding-left:20px;margin:16px 0}
+  li{margin:8px 0}
+  li::marker{color:var(--accent)}
+
+  .code{margin:20px 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#0C0916}
+  .code-tab{display:flex;align-items:center;gap:9px;padding:9px 14px;
+    background:var(--panel);border-bottom:1px solid var(--line);
+    font-family:var(--mono);font-size:12px;color:var(--ink-dim)}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);opacity:.7}
+  pre{margin:0;padding:16px;overflow-x:auto;font-family:var(--mono);
+    font-size:13.3px;line-height:1.7;color:#D3CBEA}
+  pre .c{color:#726A94}
+  pre .k{color:var(--accent)}
+  pre .s{color:#8FD6C4}
+  pre .f{color:var(--cyan)}
+
+  .call{margin:22px 0;padding:16px 18px;border-radius:12px;
+    border:1px solid var(--line);background:var(--panel);font-size:15px}
+  .call .tag{font-family:var(--mono);font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;display:block;margin-bottom:7px}
+  .call.warn{border-color:#5A344A;background:var(--warn-soft)}
+  .call.warn .tag{color:var(--warn)}
+  .call.note{border-color:#2E4A54;background:#101E22}
+  .call.note .tag{color:var(--cyan)}
+  .call p{margin:6px 0}
+  .call p:first-of-type{margin-top:0}
+  .call p:last-child{margin-bottom:0}
+
+  hr{border:none;border-top:1px solid var(--line);margin:56px 0}
+  .foot{color:var(--ink-faint);font-size:13.5px;font-family:var(--mono);
+    text-align:center;margin-top:64px;line-height:1.9}
+  .kicker{font-family:var(--mono);font-size:12px;color:var(--accent);
+    letter-spacing:.14em;text-transform:uppercase;margin:0 0 4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Build 02 // obsidian plugin</p>
+    <h1>Every Claude Code session,<br><span class="thin">filed in your vault as you go.</span></h1>
+    <p class="lede">Claude Code already writes a full record of every session to disk as <b>plain JSON Lines</b>. No login, no scraping, no gray area. This plugin reads those files and turns each session into a clean Markdown note, refreshed on a timer or on demand.</p>
+
+    <div class="path" aria-label="data flow">
+      <span class="chip src">~/.claude/projects</span>
+      <span class="arr">&rarr;</span>
+      <span class="chip">read .jsonl</span>
+      <span class="arr">&rarr;</span>
+      <span class="chip">parse turns</span>
+      <span class="arr">&rarr;</span>
+      <span class="chip">to Markdown</span>
+      <span class="arr">&rarr;</span>
+      <span class="chip">Vault API</span>
+      <span class="arr">&rarr;</span>
+      <span class="chip dst">your notes</span>
+    </div>
+  </header>
+
+  <div class="call note">
+    <span class="tag">Why this one is the easy build</span>
+    <p>Unlike claude.ai chats, Claude Code stores everything locally and append-only. Each working directory you have used maps to a folder of <code>.jsonl</code> files, one file per session, every line a complete JSON message. It is greppable, backup-able, and yours. An Obsidian plugin runs in Electron, so it has full Node <code>fs</code> access to read them. Nothing here reaches across a network.</p>
+  </div>
+
+  <!-- STAGE 0 -->
+  <section>
+    <div class="stage-head"><span class="num">0</span><h2>Know where the sessions live</h2></div>
+    <p class="stage-sub">~/.claude/projects/&lt;encoded-cwd&gt;/&lt;sessionId&gt;.jsonl</p>
+    <div class="body">
+      <p>Claude Code keeps sessions under <code>~/.claude/projects/</code>. Each subfolder is one project directory, encoded by taking the absolute path and replacing <code>/</code> and <code>.</code> with <code>-</code>. Inside are the session files.</p>
+      <div class="code">
+        <div class="code-tab"><span class="dot"></span>~/.claude/projects/</div>
+<pre>-Users-matt-code-quickreads/
+  a1b2c3d4-....jsonl      <span class="c"># one session</span>
+  e5f6a7b8-....jsonl      <span class="c"># another session</span>
+-Users-matt-code-birchfeed/
+  ...</pre>
+      </div>
+      <p>Because the folder name decodes back to the original path, you get the project name for free. <code>-Users-matt-code-quickreads</code> tells you the session belongs to <em>quickreads</em>, which becomes the note's folder or a tag.</p>
+    </div>
+  </section>
+
+  <!-- STAGE 1 -->
+  <section>
+    <div class="stage-head"><span class="num">1</span><h2>Scaffold the plugin</h2></div>
+    <p class="stage-sub">manifest, entry point, build</p>
+    <div class="body">
+      <p>An Obsidian plugin is a tiny TypeScript project: a <code>manifest.json</code>, a <code>main.ts</code> that exports a <code>Plugin</code> subclass, and an esbuild step that bundles to <code>main.js</code>. Start from the official sample plugin template and strip it down.</p>
+      <div class="code">
+        <div class="code-tab"><span class="dot"></span>manifest.json</div>
+<pre>{
+  <span class="f">"id"</span>: <span class="s">"claude-code-sync"</span>,
+  <span class="f">"name"</span>: <span class="s">"Claude Code Sync"</span>,
+  <span class="f">"version"</span>: <span class="s">"0.1.0"</span>,
+  <span class="f">"minAppVersion"</span>: <span class="s">"1.5.0"</span>,
+  <span class="f">"description"</span>: <span class="s">"Mirror Claude Code sessions into your vault as Markdown."</span>,
+  <span class="f">"isDesktopOnly"</span>: <span class="k">true</span>   <span class="c">// needs Node fs, so desktop only</span>
+}</pre>
+      </div>
+      <div class="code">
+        <div class="code-tab"><span class="dot"></span>main.ts &mdash; skeleton</div>
+<pre><span class="k">import</span> { Plugin } <span class="k">from</span> <span class="s">"obsidian"</span>;
+
+<span class="k">export default class</span> ClaudeCodeSync <span class="k">extends</span> Plugin {
+  <span class="k">async</span> onload() {
+    <span class="c">// a ribbon button for manual sync</span>
+    <span class="k">this</span>.addRibbonIcon(<span class="s">"sync"</span>, <span class="s">"Sync Claude Code"</span>, () =&gt; <span class="k">this</span>.syncAll());
+
+    <span class="c">// a command palette entry</span>
+    <span class="k">this</span>.addCommand({ id: <span class="s">"sync-now"</span>, name: <span class="s">"Sync now"</span>,
+      callback: () =&gt; <span class="k">this</span>.syncAll() });
+
+    <span class="c">// run on load, then on an interval (stage 5)</span>
+    <span class="k">await this</span>.syncAll();
+  }
+
+  <span class="k">async</span> syncAll() { <span class="c">/* stages 2-4 */</span> }
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 2 -->
+  <section>
+    <div class="stage-head"><span class="num">2</span><h2>Read and parse the JSON Lines</h2></div>
+    <p class="stage-sub">one line, one message</p>
+    <div class="body">
+      <p>Walk the project folders, read each <code>.jsonl</code>, and parse it line by line. Every line is an independent JSON object, so a single malformed line should be skipped, not fatal.</p>
+      <div class="code">
+        <div class="code-tab"><span class="dot"></span>reading a session file</div>
+<pre><span class="k">import</span> * <span class="k">as</span> fs <span class="k">from</span> <span class="s">"fs"</span>;
+<span class="k">import</span> * <span class="k">as</span> os <span class="k">from</span> <span class="s">"os"</span>;
+<span class="k">import</span> * <span class="k">as</span> path <span class="k">from</span> <span class="s">"path"</span>;
+
+<span class="k">function</span> <span class="f">readSession</span>(file: <span class="k">string</span>) {
+  <span class="k">const</span> lines = fs.readFileSync(file, <span class="s">"utf8"</span>).split(<span class="s">"\n"</span>);
+  <span class="k">return</span> lines
+    .filter(l =&gt; l.trim())
+    .map(l =&gt; { <span class="k">try</span> { <span class="k">return</span> JSON.parse(l); } <span class="k">catch</span> { <span class="k">return</span> null; } })
+    .filter(Boolean);
+}</pre>
+      </div>
+      <p>The event shape is not officially documented and can shift between versions, so inspect a real file before trusting field names. A user turn typically looks like this:</p>
+      <div class="code">
+        <div class="code-tab"><span class="dot"></span>a representative line (trimmed)</div>
+<pre>{
+  <span class="f">"type"</span>: <span class="s">"user"</span>,
+  <span class="f">"uuid"</span>: <span class="s">"..."</span>, <span class="f">"parentUuid"</span>: <span class="s">"..."</span>,
+  <span class="f">"timestamp"</span>: <span class="s">"2026-07-06T18:04:11Z"</span>,
+  <span class="f">"sessionId"</span>: <span class="s">"a1b2c3d4-..."</span>,
+  <span class="f">"cwd"</span>: <span class="s">"/Users/matt/code/quickreads"</span>,
+  <span class="f">"message"</span>: { <span class="f">"role"</span>: <span class="s">"user"</span>, <span class="f">"content"</span>: <span class="s">"add a retry to the TTS call"</span> }
+}</pre>
+      </div>
+      <div class="call note">
+        <span class="tag">Content is sometimes a string, sometimes blocks</span>
+        <p>Assistant turns often carry an array of content blocks: <code>text</code>, <code>tool_use</code>, and <code>tool_result</code>. Handle both. Flatten <code>text</code> blocks into the body, and decide whether tool calls become collapsed callouts or get dropped. Lines with <code>type: "summary"</code> are Claude Code's own recap and make a great note title.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 3 -->
+  <section>
+    <div class="stage-head"><span class="num">3</span><h2>Shape it into a note</h2></div>
+    <p class="stage-sub">frontmatter plus turns</p>
+    <div class="body">
+      <p>Order the events (file order is usually fine, or walk <code>parentUuid</code> for the true thread), then render each turn under a speaker heading. Lead with YAML frontmatter so the note is queryable by Dataview later.</p>
+      <div class="code">
+        <div class="code-tab"><span class="dot"></span>the Markdown you generate</div>
+<pre>---
+session: a1b2c3d4
+project: quickreads
+date: 2026-07-06
+source: claude-code
+---
+
+# add a retry to the TTS call
+
+<span class="k">## You</span> · 18:04
+add a retry to the TTS call
+
+<span class="k">## Claude</span> · 18:04
+Wrapped the Async TTS request in a backoff loop...
+
+&gt; [!tool]- ran: edit src/tts.ts
+&gt; +  await retry(() =&gt; ttsClient.speak(text))</pre>
+      </div>
+      <p>Folding tool calls into Obsidian's collapsible <code>[!tool]-</code> callouts keeps the transcript readable while preserving what actually happened. Strip Claude Code's internal noise (system reminders, empty tool acks) so the note reads like a conversation, not a log dump.</p>
+    </div>
+  </section>
+
+  <!-- STAGE 4 -->
+  <section>
+    <div class="stage-head"><span class="num">4</span><h2>Write through the Vault API</h2></div>
+    <p class="stage-sub">not raw fs, so Obsidian indexes it</p>
+    <div class="body">
+      <p>Read the source files with Node <code>fs</code>, but write into the vault with Obsidian's own API. That way the app indexes the note, updates links, and shows it live. Create the note if it is new, modify it if it already exists.</p>
+      <div class="code">
+        <div class="code-tab"><span class="dot"></span>upsert into the vault</div>
+<pre><span class="k">async</span> <span class="f">writeNote</span>(folder: <span class="k">string</span>, name: <span class="k">string</span>, md: <span class="k">string</span>) {
+  <span class="k">const</span> dir = <span class="k">this</span>.settings.targetFolder + <span class="s">"/"</span> + folder;
+  <span class="k">if</span> (!<span class="k">this</span>.app.vault.getAbstractFileByPath(dir))
+    <span class="k">await this</span>.app.vault.createFolder(dir);
+
+  <span class="k">const</span> filePath = <span class="s">`</span>${dir}/${name}<span class="s">.md`</span>;
+  <span class="k">const</span> existing = <span class="k">this</span>.app.vault.getAbstractFileByPath(filePath);
+
+  <span class="k">if</span> (existing) <span class="k">await this</span>.app.vault.modify(existing <span class="k">as</span> TFile, md);
+  <span class="k">else</span>        <span class="k">await this</span>.app.vault.create(filePath, md);
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 5 -->
+  <section>
+    <div class="stage-head"><span class="num">5</span><h2>Keep it in sync, incrementally</h2></div>
+    <p class="stage-sub">interval plus a high-water mark</p>
+    <div class="body">
+      <p>Two pieces make it a real sync. A schedule, and a memory of what you already handled. Obsidian's <code>registerInterval</code> cleans itself up on unload, so use it rather than a bare <code>setInterval</code>.</p>
+      <div class="code">
+        <div class="code-tab"><span class="dot"></span>schedule + skip unchanged files</div>
+<pre><span class="c">// in onload(), after the first sync</span>
+<span class="k">this</span>.registerInterval(
+  window.setInterval(() =&gt; <span class="k">this</span>.syncAll(), <span class="k">this</span>.settings.intervalMs)
+);
+
+<span class="c">// inside syncAll(): only touch files that grew</span>
+<span class="k">const</span> stat = fs.statSync(file);
+<span class="k">const</span> seen = <span class="k">this</span>.state[file]?.mtimeMs ?? <span class="k">0</span>;
+<span class="k">if</span> (stat.mtimeMs &lt;= seen) <span class="k">return</span>;        <span class="c">// unchanged, skip</span>
+<span class="c">// ...parse, write...</span>
+<span class="k">this</span>.state[file] = { mtimeMs: stat.mtimeMs };
+<span class="k">await this</span>.saveData(<span class="k">this</span>.state);      <span class="c">// persists across restarts</span></pre>
+      </div>
+      <p>Comparing file <code>mtime</code> against a stored value means a run over an idle project does almost nothing. For very active sessions you can go further and track the last line count, appending only new turns instead of rewriting the whole note.</p>
+    </div>
+  </section>
+
+  <!-- STAGE 6 -->
+  <section>
+    <div class="stage-head"><span class="num">6</span><h2>Give it a settings tab</h2></div>
+    <p class="stage-sub">the three knobs people will want</p>
+    <div class="body">
+      <p>Add a <code>PluginSettingTab</code> so nobody has to edit code. Keep it to what actually varies.</p>
+      <ul>
+        <li><strong>Source path.</strong> Default <code>~/.claude/projects</code>, overridable for non-standard setups.</li>
+        <li><strong>Target folder.</strong> Where notes land in the vault, for example <code>Claude Code</code>.</li>
+        <li><strong>Interval.</strong> How often to sync, with an option for manual-only.</li>
+        <li><strong>Tool calls.</strong> A toggle: fold them into callouts, or leave them out.</li>
+      </ul>
+      <div class="code">
+        <div class="code-tab"><span class="dot"></span>resolving the home path</div>
+<pre><span class="k">const</span> base = <span class="k">this</span>.settings.sourcePath
+  .replace(<span class="s">/^~/</span>, os.homedir());   <span class="c">// expand ~ yourself</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGE 7 -->
+  <section>
+    <div class="stage-head"><span class="num">7</span><h2>Ship it</h2></div>
+    <p class="stage-sub">install, then edge cases</p>
+    <div class="body">
+      <p>For your own use, drop <code>main.js</code>, <code>manifest.json</code>, and <code>styles.css</code> into <code>&lt;vault&gt;/.obsidian/plugins/claude-code-sync/</code> and enable it in settings. To let others try it before it is in the community list, point them at <strong>BRAT</strong>, which installs plugins straight from a GitHub repo. To go fully public, submit to the community plugins directory.</p>
+      <div class="call warn">
+        <span class="tag">The edges that will bite</span>
+        <p><strong>Files change mid-read.</strong> A session can be written while you parse it, so read defensively and let the next interval catch up. <strong>Big sessions.</strong> Long transcripts make large notes, so consider a size cap or splitting by day. <strong>Desktop only.</strong> There is no <code>fs</code> on mobile, which is why the manifest sets <code>isDesktopOnly</code>. <strong>Format drift.</strong> The <code>.jsonl</code> schema is undocumented, so guard every field access and fail soft when a version changes something.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr>
+
+  <section>
+    <p class="kicker">Where this pairs with Build 01</p>
+    <div class="stage-head"><h2>Two halves of one habit</h2></div>
+    <div class="body">
+      <p>Build 01 pulls your exploratory <strong>claude.ai</strong> thinking into Apple Notes. This one files your <strong>Claude Code</strong> implementation work into Obsidian. Together they close the loop the community keeps asking for: the planning and the building, both captured, both searchable, without a single copy and paste. And because the Claude Code side is local and above board, it is the one to build first and lean on hardest.</p>
+    </div>
+  </section>
+
+  <p class="foot">
+    Build 02 of 2 &nbsp;//&nbsp; Claude Code &rarr; Obsidian<br>
+    desktop only &nbsp;·&nbsp; local files, no network, no auth<br>
+    inspect a real .jsonl before trusting any field name
+  </p>
+
+</div>
+</body>
+</html>
