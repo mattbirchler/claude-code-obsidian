@@ -1,5 +1,7 @@
 import type { Session } from "./parser";
 
+// Control chars are intentionally matched: they're illegal in Windows filenames.
+// eslint-disable-next-line no-control-regex
 const ILLEGAL = /[<>:"/\\|?*\u0000-\u001f]/g;
 const RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
 const MAX_LENGTH = 80;
