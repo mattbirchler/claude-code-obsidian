@@ -59,7 +59,7 @@ Submission to the Obsidian community plugin directory is planned; until then, us
 | --- | --- | --- |
 | Source path | `~/.claude/projects` | Where Claude Code stores its session files. `~` expands to your home folder. |
 | Target folder | `Claude Code` | Vault folder the session notes are written into. |
-| Sync interval (minutes) | `5` | How often to sync automatically. `0` means manual only. |
+| Sync interval (minutes) | `30` | How often to sync automatically. `0` means manual only. |
 | Include tool calls | On | Show what Claude did (edits, commands) as collapsed callouts. |
 | Include thinking | On | Show Claude's internal reasoning as collapsed callouts. |
 

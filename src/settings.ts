@@ -12,7 +12,7 @@ export interface ClaudeCodeSyncSettings {
 export const DEFAULT_SETTINGS: ClaudeCodeSyncSettings = {
   sourcePath: "~/.claude/projects",
   targetFolder: "Claude Code",
-  intervalMinutes: 5,
+  intervalMinutes: 30,
   includeTools: true,
   includeThinking: true,
 };
@@ -58,11 +58,12 @@ export class ClaudeCodeSyncSettingTab extends PluginSettingTab {
       .setDesc("How often to sync automatically. 0 means manual only.")
       .addText((text) =>
         text
-          .setPlaceholder("5")
+          .setPlaceholder(String(DEFAULT_SETTINGS.intervalMinutes))
           .setValue(String(this.plugin.settings.intervalMinutes))
           .onChange(async (value) => {
             const n = Number(value);
-            this.plugin.settings.intervalMinutes = Number.isFinite(n) && n >= 0 ? n : 5;
+            this.plugin.settings.intervalMinutes =
+              Number.isFinite(n) && n >= 0 ? n : DEFAULT_SETTINGS.intervalMinutes;
             await this.plugin.savePersisted();
             this.plugin.applyInterval();
           })
