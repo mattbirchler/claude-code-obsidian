@@ -1,6 +1,6 @@
 {
   "name": "claude-code-sync",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Mirror Claude Code sessions into your Obsidian vault as Markdown.",
   "main": "main.js",
   "scripts": {
